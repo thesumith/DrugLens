@@ -1,22 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>PubMed Drug Abstract Search</title>
+  <meta charset="UTF-8" />
+  <title>PubMed DrugLens</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
-    label { display: block; margin: 10px 0 5px; }
-    input, button { padding: 8px; width: 300px; max-width: 100%; margin-bottom: 10px; }
-    button { width: auto; background-color: #1E2761; color: white; border: none; cursor: pointer; }
-    textarea { width: 100%; height: 300px; margin-top: 15px; padding: 10px; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f6fa;
+      padding: 40px;
+      margin: 0;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      margin: 16px 0 6px;
+      font-weight: 600;
+    }
+
+    input, button, textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #1E2761;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #408EC6;
+    }
+
+    #resultsContainer {
+      margin-top: 20px;
+    }
+
+    #actionButtons {
+      margin-top: 10px;
+      display: none;
+    }
+
+    #output {
+      height: 300px;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 600px) {
+      input, button, textarea {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
 
-  <h2>PubMed Drug Abstract Search</h2>
+  <h2>PubMed DrugLens</h2>
 
   <label>Drug Name:</label>
-  <input type="text" id="drugName" placeholder="e.g. Paracetamol">
+  <input type="text" id="drugName" placeholder="e.g. Ibuprofen">
 
   <label>From Date (DD/MM/YYYY):</label>
   <input type="text" id="fromDate" value="01/01/2022">
@@ -24,9 +73,16 @@
   <label>To Date (DD/MM/YYYY):</label>
   <input type="text" id="toDate" value="31/12/2024">
 
-  <button onclick="searchPubMed()">Search & Download CSV</button>
+  <button onclick="searchPubMed()">Search PubMed</button>
 
-  <textarea id="output" placeholder="Abstracts will appear here..."></textarea>
+  <div id="resultsContainer">
+    <p id="resultCount"></p>
+    <textarea id="output" placeholder="Abstracts will appear here..."></textarea>
+    <div id="actionButtons">
+      <button onclick="downloadCSV()">Download CSV</button>
+      <button id="openPubMed" target="_blank">Open in PubMed</button>
+    </div>
+  </div>
 
   <script>
     function formatDateForPubMed(ddmmyyyy) {
@@ -57,7 +113,6 @@
     async function fetchPubMedDetails(ids) {
       const chunks = [];
       const chunkSize = 200;
-
       for (let i = 0; i < ids.length; i += chunkSize) {
         const chunk = ids.slice(i, i + chunkSize);
         const efetchURL = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${chunk.join(',')}&retmode=xml`;
@@ -67,9 +122,10 @@
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");
         chunks.push(...xmlDoc.getElementsByTagName("PubmedArticle"));
       }
-
       return chunks;
     }
+
+    let csvContent = "";
 
     async function searchPubMed() {
       const drug = document.getElementById('drugName').value.trim();
@@ -77,28 +133,29 @@
       const toDate = formatDateForPubMed(document.getElementById('toDate').value.trim());
 
       if (!drug || !fromDate || !toDate) {
-        alert("Please enter valid drug name and date range in DD/MM/YYYY format.");
+        alert("Please enter valid inputs.");
         return;
       }
 
       const searchTerm = `${drug} AND humans[MeSH Terms] AND ("${fromDate}"[Date - Publication] : "${toDate}"[Date - Publication])`;
 
       const ids = await fetchAllPMIDs(searchTerm);
+      document.getElementById('resultCount').textContent = `Found ${ids.length} article(s).`;
+
       if (ids.length === 0) {
-        alert("No articles found for the given search.");
+        document.getElementById("output").value = "No results found.";
+        document.getElementById("actionButtons").style.display = "none";
         return;
       }
 
       const articles = await fetchPubMedDetails(ids);
-
-      let csvContent = "PMID,Title,Authors,Journal,Date,Abstract\n";
+      csvContent = "PMID,Title,Authors,Journal,Date,Abstract\n";
       let displayText = "";
 
       for (let article of articles) {
         const title = article.querySelector("ArticleTitle")?.textContent.replace(/"/g, '""') || "";
         const journal = article.querySelector("Journal > Title")?.textContent || "";
 
-        // Format publication date
         const pubDate = article.querySelector("PubDate");
         let day = "01", month = "01", year = "1900";
         if (pubDate) {
@@ -116,26 +173,32 @@
         }
         const fullDate = `${day}/${month}/${year}`;
 
-       const abstractElements = article.querySelectorAll("Abstract > AbstractText");
-const abstract = Array.from(abstractElements).map(el => el.textContent).join("\n").replace(/"/g, '""');
-
+        const abstractElements = article.querySelectorAll("Abstract > AbstractText");
+        const abstract = Array.from(abstractElements).map(el => el.textContent).join("\n").replace(/"/g, '""');
         const authors = Array.from(article.querySelectorAll("AuthorList > Author"))
           .map(a => `${a.querySelector("LastName")?.textContent || ""} ${a.querySelector("ForeName")?.textContent || ""}`)
           .join("; ");
-const pmid = article.querySelector("PMID")?.textContent || "";
+        const pmid = article.querySelector("PMID")?.textContent || "";
 
-       csvContent += `"${pmid}","${title}","${authors}","${journal}","${fullDate}","${abstract}"\n`;
+        csvContent += `"${pmid}","${title}","${authors}","${journal}","${fullDate}","${abstract}"\n`;
 
         displayText += `Title: ${title}\nAuthors: ${authors}\nJournal: ${journal}\nDate: ${fullDate}\nAbstract: ${abstract}\n\n`;
       }
 
       document.getElementById("output").value = displayText;
+      document.getElementById("actionButtons").style.display = "block";
 
-      // Trigger CSV download
+      // Update external PubMed link
+      const pubmedLink = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(searchTerm)}&format=abstract`;
+      const openPubMedBtn = document.getElementById("openPubMed");
+      openPubMedBtn.onclick = () => window.open(pubmedLink, "_blank");
+    }
+
+    function downloadCSV() {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `${drug.replace(/\s+/g, "_")}_abstracts_${fromDate.replace(/\//g, '-')}_to_${toDate.replace(/\//g, '-')}.csv`;
+      link.download = "pubmed_abstracts.csv";
       link.click();
     }
   </script>
