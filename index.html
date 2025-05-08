@@ -58,6 +58,51 @@
         width: 100%;
       }
     }
+    .switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin-bottom: 20px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: #1E2761;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(26px);
+  }
   </style>
 </head>
 <body>
@@ -74,7 +119,11 @@
   <input type="text" id="toDate" value="31/12/2024">
 
   <button onclick="searchPubMed()">Search PubMed</button>
-
+<label>Include ADR MeSH Terms:</label>
+<label class="switch">
+  <input type="checkbox" id="adrToggle">
+  <span class="slider round"></span>
+</label>
   <div id="resultsContainer">
     <p id="resultCount"></p>
     <textarea id="output" placeholder="Abstracts will appear here..."></textarea>
@@ -137,7 +186,14 @@
         return;
       }
 
-      const searchTerm = `${drug} AND humans[MeSH Terms] AND ("${fromDate}"[Date - Publication] : "${toDate}"[Date - Publication])`;
+      const adrEnabled = document.getElementById('adrToggle').checked;
+
+let adrTerms = `("adverse drug reaction"[MeSH Terms] OR "adverse drug reaction" OR "drug overdose"[MeSH Terms] OR "drug overdose" OR "drug misuse"[MeSH Terms] OR "drug misuse" OR "drug abuse" OR "substance abuse"[MeSH Terms] OR "substance abuse" OR "pregnancy"[MeSH Terms] OR "pregnancy" OR "drug efficacy"[MeSH Terms] OR "drug efficacy" OR "drug withdrawal"[MeSH Terms] OR "drug withdrawal" OR "drug tolerance"[MeSH Terms] OR "drug tolerance" OR "medication error"[MeSH Terms] OR "medication error" OR "death"[MeSH Terms] OR "death" OR "drug interaction"[MeSH Terms] OR "drug interaction" OR "carcinogenicity"[MeSH Terms] OR "carcinogenicity" OR "off label drug use"[MeSH Terms] OR "off label drug use" OR "occupational exposure"[MeSH Terms] OR "occupational exposure" OR "toxicity"[MeSH Terms] OR "intoxication" OR "drug contraindication"[MeSH Terms] OR "drug contraindication" OR "congenital disorder"[MeSH Terms] OR "congenital disorder" OR "drug treatment failure"[MeSH Terms] OR "drug treatment failure" OR "lactation"[MeSH Terms] OR "lactation" OR "case report"[MeSH Terms] OR "case report" OR "environmental exposure"[MeSH Terms] OR "environmental exposure" OR "treatment contraindication"[MeSH Terms] OR "treatment contraindication")`;
+
+const searchTerm = adrEnabled
+  ? `(${drug}[All Fields]) AND humans[MeSH Terms] AND ("${fromDate}"[Date - Publication] : "${toDate}"[Date - Publication]) AND ${adrTerms}`
+  : `${drug} AND humans[MeSH Terms] AND ("${fromDate}"[Date - Publication] : "${toDate}"[Date - Publication])`;
+
 
       const ids = await fetchAllPMIDs(searchTerm);
       document.getElementById('resultCount').textContent = `Found ${ids.length} article(s).`;
