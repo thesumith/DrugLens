@@ -53,56 +53,51 @@
       white-space: pre-wrap;
     }
 
-    @media (max-width: 600px) {
-      input, button, textarea {
-        width: 100%;
-      }
-    }
     .switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-    margin-bottom: 20px;
-  }
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+      margin-bottom: 20px;
+    }
 
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
 
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 34px;
-  }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
 
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-  }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
 
-  input:checked + .slider {
-    background-color: #1E2761;
-  }
+    input:checked + .slider {
+      background-color: #1E2761;
+    }
 
-  input:checked + .slider:before {
-    transform: translateX(26px);
-  }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
   </style>
 </head>
 <body>
@@ -118,20 +113,21 @@
   <label>To Date (DD/MM/YYYY):</label>
   <input type="text" id="toDate" value="31/12/2024">
   
-<label>Include ADR MeSH Terms:</label>
-<label class="switch">
-  <input type="checkbox" id="adrToggle">
-  <span class="slider round"></span>
-</label>
-  
+  <label>Include ADR MeSH Terms:</label>
+  <label class="switch">
+    <input type="checkbox" id="adrToggle">
+    <span class="slider round"></span>
+  </label>
+
   <button onclick="searchPubMed()">Search PubMed</button>
+  <p id="loading" style="display:none; font-style: italic;">Loading...</p>
 
   <div id="resultsContainer">
     <p id="resultCount"></p>
     <textarea id="output" placeholder="Abstracts will appear here..."></textarea>
     <div id="actionButtons">
       <button onclick="downloadCSV()">Download CSV</button>
-      <button id="openPubMed" target="_blank">Open in PubMed</button>
+      <button id="openPubMed">Open in PubMed</button>
     </div>
   </div>
 
@@ -143,19 +139,28 @@
       return `${yyyy}/${mm}/${dd}`;
     }
 
+    function isValidDateFormat(dateStr) {
+      return /^\d{2}\/\d{2}\/\d{4}$/.test(dateStr);
+    }
+
     async function fetchAllPMIDs(searchTerm) {
       let allIDs = [];
       const retmax = 10000;
       let retstart = 0;
 
-      while (true) {
-        const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmax=${retmax}&retstart=${retstart}&term=${encodeURIComponent(searchTerm)}&retmode=json`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const ids = data.esearchresult.idlist;
-        allIDs = allIDs.concat(ids);
-        if (ids.length < retmax) break;
-        retstart += retmax;
+      try {
+        while (true) {
+          const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmax=${retmax}&retstart=${retstart}&term=${encodeURIComponent(searchTerm)}&retmode=json`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("Failed to fetch PubMed IDs.");
+          const data = await res.json();
+          const ids = data.esearchresult.idlist;
+          allIDs = allIDs.concat(ids);
+          if (ids.length < retmax) break;
+          retstart += retmax;
+        }
+      } catch (err) {
+        alert("Error fetching PubMed IDs: " + err.message);
       }
 
       return allIDs;
@@ -180,33 +185,46 @@
 
     async function searchPubMed() {
       const drug = document.getElementById('drugName').value.trim();
-      const fromDate = formatDateForPubMed(document.getElementById('fromDate').value.trim());
-      const toDate = formatDateForPubMed(document.getElementById('toDate').value.trim());
+      const fromInput = document.getElementById('fromDate').value.trim();
+      const toInput = document.getElementById('toDate').value.trim();
 
-      if (!drug || !fromDate || !toDate) {
-        alert("Please enter valid inputs.");
+      if (!drug || !isValidDateFormat(fromInput) || !isValidDateFormat(toInput)) {
+        alert("Please enter valid dates in DD/MM/YYYY format.");
         return;
       }
 
+      const fromDate = formatDateForPubMed(fromInput);
+      const toDate = formatDateForPubMed(toInput);
       const adrEnabled = document.getElementById('adrToggle').checked;
 
-let baseQuery = `(("${drug}"[All Fields]) AND (("${fromDate}"[Date - Publication] : "${toDate}"[Date - Publication])))`;
+      let baseQuery = `(("${drug}"[All Fields]) AND ("${fromDate}"[Date - Publication] : "${toDate}"[Date - Publication]))`;
 
-let adrTerms = `(('adverse drug reaction'/exp OR 'adverse drug reaction' OR 'drug overdose'/exp OR 'drug overdose' OR 'drug misuse'/exp OR 'drug misuse' OR 'drug abuse' OR 'substance abuse'/exp OR 'substance abuse' OR 'pregnancy'/exp OR 'pregnancy' OR 'drug efficacy'/exp OR 'drug efficacy' OR 'drug withdrawal'/exp OR 'drug withdrawal' OR 'drug tolerance'/exp OR 'drug tolerance' OR 'medication error'/exp OR 'medication error' OR 'death'/exp OR 'death' OR 'drug interaction'/exp OR 'drug interaction' OR 'carcinogenicity'/exp OR 'carcinogenicity' OR 'off label drug use'/exp OR 'off label drug use' OR 'occupational exposure'/exp OR 'occupational exposure' OR 'toxicity'/exp OR 'intoxication' OR 'drug contraindication'/exp OR 'drug contraindication' OR 'congenital disorder'/exp OR 'congenital disorder' OR 'drug treatment failure'/exp OR 'drug treatment failure' OR 'lactation'/exp OR 'lactation' OR 'case report'/exp OR 'case report' OR 'environmental exposure'/exp OR 'environmental exposure' OR 'treatment contraindication'/exp OR 'treatment contraindication'))`;
+      let adrTerms = `(('adverse drug reaction'/exp OR 'adverse drug reaction' OR 'drug overdose'/exp OR 'drug overdose' OR 'drug misuse'/exp OR 'drug misuse' OR 'drug abuse' OR 'substance abuse'/exp OR 'substance abuse' OR 'pregnancy'/exp OR 'pregnancy' OR 'drug efficacy'/exp OR 'drug efficacy' OR 'drug withdrawal'/exp OR 'drug withdrawal' OR 'drug tolerance'/exp OR 'drug tolerance' OR 'medication error'/exp OR 'medication error' OR 'death'/exp OR 'death' OR 'drug interaction'/exp OR 'drug interaction' OR 'carcinogenicity'/exp OR 'carcinogenicity' OR 'off label drug use'/exp OR 'off label drug use' OR 'occupational exposure'/exp OR 'occupational exposure' OR 'toxicity'/exp OR 'intoxication' OR 'drug contraindication'/exp OR 'drug contraindication' OR 'congenital disorder'/exp OR 'congenital disorder' OR 'drug treatment failure'/exp OR 'drug treatment failure' OR 'lactation'/exp OR 'lactation' OR 'case report'/exp OR 'case report' OR 'environmental exposure'/exp OR 'environmental exposure' OR 'treatment contraindication'/exp OR 'treatment contraindication'))`;
 
-const searchTerm = adrEnabled
-  ? `${baseQuery} AND humans[MeSH Terms] AND ${adrTerms}`
-  : `${baseQuery} AND humans[MeSH Terms]`;
+      const searchTerm = adrEnabled
+        ? `${baseQuery} AND humans[MeSH Terms] AND ${adrTerms}`
+        : `${baseQuery} AND humans[MeSH Terms]`;
 
+      document.getElementById("loading").style.display = "block";
 
       const ids = await fetchAllPMIDs(searchTerm);
-      document.getElementById('resultCount').textContent = `Found ${ids.length} article(s).`;
-
       if (ids.length === 0) {
         document.getElementById("output").value = "No results found.";
+        document.getElementById("resultCount").textContent = "";
         document.getElementById("actionButtons").style.display = "none";
+        document.getElementById("loading").style.display = "none";
         return;
       }
+
+      if (ids.length > 2000) {
+        const goAhead = confirm(`This search found ${ids.length} articles. It may take a while. Continue?`);
+        if (!goAhead) {
+          document.getElementById("loading").style.display = "none";
+          return;
+        }
+      }
+
+      document.getElementById("resultCount").textContent = `Found ${ids.length} article(s).`;
 
       const articles = await fetchPubMedDetails(ids);
       csvContent = "PMID,Title,Authors,Journal,Date,Abstract\n";
@@ -220,14 +238,9 @@ const searchTerm = adrEnabled
         let day = "01", month = "01", year = "1900";
         if (pubDate) {
           year = pubDate.querySelector("Year")?.textContent || year;
+          const monthMap = { Jan:"01", Feb:"02", Mar:"03", Apr:"04", May:"05", Jun:"06", Jul:"07", Aug:"08", Sep:"09", Oct:"10", Nov:"11", Dec:"12" };
           const monthText = pubDate.querySelector("Month")?.textContent;
           const dayText = pubDate.querySelector("Day")?.textContent;
-
-          const monthMap = {
-            Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
-            Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12"
-          };
-
           if (monthText) month = monthMap[monthText] || monthText.padStart(2, '0');
           if (dayText) day = dayText.padStart(2, '0');
         }
@@ -247,11 +260,12 @@ const searchTerm = adrEnabled
 
       document.getElementById("output").value = displayText;
       document.getElementById("actionButtons").style.display = "block";
+      document.getElementById("loading").style.display = "none";
 
-      // Update external PubMed link
-      const pubmedLink = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(searchTerm)}&format=abstract`;
-      const openPubMedBtn = document.getElementById("openPubMed");
-      openPubMedBtn.onclick = () => window.open(pubmedLink, "_blank");
+      document.getElementById("openPubMed").onclick = () => {
+        const pubmedLink = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(searchTerm)}&format=abstract`;
+        window.open(pubmedLink, "_blank");
+      };
     }
 
     function downloadCSV() {
