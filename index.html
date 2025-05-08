@@ -117,13 +117,15 @@
 
   <label>To Date (DD/MM/YYYY):</label>
   <input type="text" id="toDate" value="31/12/2024">
-
-  <button onclick="searchPubMed()">Search PubMed</button>
+  
 <label>Include ADR MeSH Terms:</label>
 <label class="switch">
   <input type="checkbox" id="adrToggle">
   <span class="slider round"></span>
 </label>
+  
+  <button onclick="searchPubMed()">Search PubMed</button>
+
   <div id="resultsContainer">
     <p id="resultCount"></p>
     <textarea id="output" placeholder="Abstracts will appear here..."></textarea>
