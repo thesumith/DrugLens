@@ -1,64 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PubMed DrugLens</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    :root {
+      --primary-color: #3366cc;
+      --primary-dark: #254a99;
+      --secondary-color: #1E2761;
+      --light-bg: #f8f9fa;
+      --text-color: #2c2c2c;
+      --text-light: #666;
+      --border-color: #ddd;
+      --highlight-color: #fff7e6;
+      --mark-color: #ffff66;
+      --severe-color: #ffcccc;
+      --error-color: #dc3545;
+      --success-color: #28a745;
+    }
+
     body {
-      font-family: system-ui, sans-serif;
-      background: #f5f6fa;
-      padding: 40px;
+      font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background-color: var(--light-bg);
+      padding: 20px;
       margin: 0;
-      color: #333;
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: var(--secondary-color);
+      margin-bottom: 25px;
+      letter-spacing: -0.3px;
+      text-align: center;
+    }
+
+    .header-link {
+      text-decoration: none;
+      color: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-logo {
+      height: 50px;
+    }
+
+    .search-form {
+      margin-bottom: 30px;
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 15px;
+    }
+
+    .form-group {
+      flex: 1;
     }
 
     label {
       display: block;
-      margin: 16px 0 6px;
+      margin-bottom: 8px;
       font-weight: 600;
+      font-size: 0.95rem;
+      color: #333;
     }
 
     input, button, textarea {
       width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      margin-bottom: 12px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: white;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(51, 102, 204, 0.2);
     }
 
     button {
-      background-color: #1E2761;
+      background-color: var(--primary-color);
       color: white;
+      font-weight: 600;
       border: none;
       cursor: pointer;
+      padding: 12px 20px;
+      transition: background 0.3s ease, transform 0.2s ease;
     }
 
     button:hover {
-      background-color: #408EC6;
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);
     }
 
-    #resultsContainer {
-      margin-top: 20px;
+    button:active {
+      transform: translateY(0);
     }
 
-    #actionButtons {
-      margin-top: 10px;
-      display: none;
+    button.secondary {
+      background-color: #6c757d;
     }
 
-    #output {
-      height: 300px;
-      white-space: pre-wrap;
+    button.secondary:hover {
+      background-color: #5a6268;
+    }
+
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
     }
 
     .switch {
       position: relative;
       display: inline-block;
-      width: 60px;
-      height: 34px;
-      margin-bottom: 20px;
+      width: 50px;
+      height: 28px;
     }
 
     .switch input {
@@ -70,212 +152,1037 @@
     .slider {
       position: absolute;
       cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background-color: #ccc;
-      transition: .4s;
-      border-radius: 34px;
+      transition: 0.4s;
+      border-radius: 28px;
     }
 
     .slider:before {
       position: absolute;
       content: "";
-      height: 26px;
-      width: 26px;
-      left: 4px;
-      bottom: 4px;
+      height: 20px; width: 20px;
+      left: 4px; bottom: 4px;
       background-color: white;
-      transition: .4s;
+      transition: 0.4s;
       border-radius: 50%;
     }
 
     input:checked + .slider {
-      background-color: #1E2761;
+      background-color: var(--primary-color);
     }
 
     input:checked + .slider:before {
-      transform: translateX(26px);
+      transform: translateX(22px);
+    }
+
+    #loading {
+      display: none;
+      padding: 15px;
+      text-align: center;
+      font-style: italic;
+      color: var(--text-light);
+    }
+
+    .spinner {
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid var(--primary-color);
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #resultsContainer {
+      margin-top: 30px;
+    }
+
+    #actionButtons {
+      margin-top: 20px;
+      display: none;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #resultCount {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-color);
+      margin: 20px 0;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    .pubmed-verified-banner {
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #e8f0fe;
+      border-left: 4px solid var(--primary-color);
+      font-size: 0.95rem;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pubmed-verified-banner img {
+      height: 20px;
+    }
+
+    .pubmed-verified-banner a {
+      color: var(--primary-color);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .pubmed-verified-banner a:hover {
+      text-decoration: underline;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      border: 1px solid var(--border-color);
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    thead {
+      background: var(--secondary-color);
+      color: white;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      font-weight: 600;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+
+    tbody tr:hover {
+      background-color: #eaf2ff;
+    }
+
+    .priority-row {
+      background-color: var(--highlight-color) !important;
+    }
+
+    .severe-row {
+      background-color: #fff0f0 !important;
+    }
+
+    mark {
+      background-color: var(--mark-color);
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    mark.severe {
+      background-color: var(--severe-color);
+    }
+
+    .drug-highlight {
+      color: var(--primary-color);
+      font-weight: bold;
+    }
+
+    .abstract-cell {
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+
+    .view-link {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .view-link:hover {
+      text-decoration: underline;
+    }
+
+    .error-message {
+      color: var(--error-color);
+      font-size: 0.9rem;
+      margin-top: -15px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      margin-left: 5px;
+      color: var(--primary-color);
+      cursor: pointer;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.8rem;
+      font-weight: normal;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    #filterButtons {
+      margin: 15px 0;
+      display: flex;
+      gap: 10px;
+    }
+
+    .filter-btn {
+      padding: 8px 15px;
+      background: #e0e0e0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      background: #d0d0d0;
+    }
+
+    .filter-btn.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    #statsDashboard {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .stat-box {
+      flex: 1;
+      min-width: 150px;
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+
+    .severity-indicator {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 20px;
+      font-size: 12px;
+    }
+
+    .severity-high {
+      background-color: #ffcccc;
+      color: #d32f2f;
+    }
+
+    .severity-medium {
+      background-color: #fff9c4;
+      color: #ffa000;
+    }
+
+    .severity-low {
+      background-color: #c8e6c9;
+      color: #388e3c;
+    }
+
+    .footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-light);
+      padding: 20px 0;
+    }
+
+    .top-adrs-container {
+      margin-top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .top-adrs-title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--secondary-color);
+    }
+
+    .top-adr-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .top-adr-item:last-child {
+      border-bottom: none;
+    }
+
+    .top-adr-term {
+      font-weight: 500;
+    }
+
+    .top-adr-count {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+      
+      .container {
+        padding: 15px;
+      }
+      
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+      
+      .abstract-cell {
+        max-width: 200px;
+      }
+
+      #actionButtons, #filterButtons {
+        flex-direction: column;
+      }
+
+      .stat-box {
+        min-width: 100%;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h2>
+      <a href="https://thesumith.github.io/PubMed/" class="header-link">
+        <img src="https://i.ibb.co/6JprMTCv/pubmed-logo-blue1.png" alt="PubMed Logo" class="header-logo">
+        DrugLens
+      </a>
+    </h2>
 
-  <h2>PubMed DrugLens</h2>
+    <div class="search-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="drugName">
+            Drug Name
+            <span class="tooltip">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltiptext">Enter the drug name you want to research (e.g., Ibuprofen, Aspirin)</span>
+            </span>
+          </label>
+          <input type="text" id="drugName" placeholder="e.g. Ibuprofen, Aspirin">
+        </div>
+      </div>
 
-  <label>Drug Name:</label>
-  <input type="text" id="drugName" placeholder="e.g. Ibuprofen">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fromDate">From Date (DD/MM/YYYY)</label>
+          <input type="text" id="fromDate" value="01/01/2022">
+          <div id="fromDateError" class="error-message">Please enter a valid date in DD/MM/YYYY format</div>
+        </div>
+        <div class="form-group">
+          <label for="toDate">To Date (DD/MM/YYYY)</label>
+          <input type="text" id="toDate" value="31/12/2024">
+          <div id="toDateError" class="error-message">Please enter a valid date in DD/MM/YYYY format</div>
+        </div>
+      </div>
 
-  <label>From Date (DD/MM/YYYY):</label>
-  <input type="text" id="fromDate" value="01/01/2022">
+      <div class="switch-container">
+        <label class="switch">
+          <input type="checkbox" id="adrToggle" checked>
+          <span class="slider round"></span>
+        </label>
+        <span>Include ADR (Adverse Drug Reaction) Terms</span>
+        <span class="tooltip">
+          <i class="fas fa-info-circle"></i>
+          <span class="tooltiptext">When enabled, filters for articles mentioning adverse drug reactions, toxicity, and related terms</span>
+        </span>
+      </div>
 
-  <label>To Date (DD/MM/YYYY):</label>
-  <input type="text" id="toDate" value="31/12/2024">
-  
-  <label>Include ADR MeSH Terms:</label>
-  <label class="switch">
-    <input type="checkbox" id="adrToggle">
-    <span class="slider round"></span>
-  </label>
+      <button onclick="searchPubMed()">
+        <i class="fas fa-search"></i> Search PubMed
+      </button>
+    </div>
 
-  <button onclick="searchPubMed()">Search PubMed</button>
-  <p id="loading" style="display:none; font-style: italic;">Loading...</p>
+    <div id="loading">
+      <div class="spinner"></div>
+      Searching PubMed... This may take a moment for large result sets.
+    </div>
 
-  <div id="resultsContainer">
-    <p id="resultCount"></p>
-    <textarea id="output" placeholder="Abstracts will appear here..."></textarea>
-    <div id="actionButtons">
-      <button onclick="downloadCSV()">Download CSV</button>
-      <button id="openPubMed">Open in PubMed</button>
+    <div id="resultsContainer">
+      <div id="actionButtons" style="display: none;">
+        <button onclick="downloadCSV()">
+          <i class="fas fa-download"></i> Download CSV
+        </button>
+        <button onclick="downloadADRReport()">
+          <i class="fas fa-file-medical"></i> Download ADR Report
+        </button>
+        <button id="openPubMed" class="secondary">
+          <i class="fas fa-external-link-alt"></i> Open in PubMed
+        </button>
+      </div>
+
+      <div id="statsDashboard" style="display: none;">
+        <div class="stat-box">
+          <div class="stat-value" id="totalArticles">0</div>
+          <div class="stat-label">Total Articles</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="adrArticles">0</div>
+          <div class="stat-label">ADR Mentions</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="severeAdrArticles">0</div>
+          <div class="stat-label">Severe ADRs</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="topADRTerm">-</div>
+          <div class="stat-label">Most Frequent ADR</div>
+        </div>
+      </div>
+      
+      <div id="filterButtons" style="display: none;">
+        <button class="filter-btn active" data-filter="all">All Results</button>
+        <button class="filter-btn" data-filter="adr">ADR Mentions</button>
+        <button class="filter-btn" data-filter="severe">Severe ADRs</button>
+      </div>
+      
+      <p id="resultCount"></p>
+      
+      <div id="pubmedVerifiedBanner" class="pubmed-verified-banner" style="display: none;">
+        <img src="https://i.ibb.co/WmdnRkj/pubmed-logo-blue1.png" alt="PubMed">
+        <div>
+          <strong>Source:</strong> All data is retrieved directly from 
+          <a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank">PubMed</a> 
+          using the official NCBI E-Utilities API. Results are sorted with potential ADR mentions highlighted.
+        </div>
+      </div>
+
+      <div id="topADRsContainer" class="top-adrs-container" style="display: none;">
+        <div class="top-adrs-title">Top 5 Most Frequent ADR Terms</div>
+        <div id="topADRsList"></div>
+      </div>
+
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>PMID</th>
+            <th>Title</th>
+            <th>ADR Mentions</th>
+            <th>Severity</th>
+            <th>Abstract Snippet</th>
+            <th>Link</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <p>PubMed DrugLens - ADR Signal Detection &copy; 2023 | For research use only</p>
+      <p><small>Not for clinical decision making. Consult a healthcare professional for medical advice.</small></p>
     </div>
   </div>
 
   <script>
+    // Global variables
+    let csvContent = "";
+    let adrCsvContent = "";
+    let currentSearchTerm = "";
+    let currentDrug = "";
+    let allArticles = [];
+
+    // ADR terms for detection
+    const adrTerms = [
+      "adverse drug reaction", "adverse effect", "side effect", "toxicity", 
+      "hepatotoxicity", "nephrotoxicity", "neurotoxicity", "cardiotoxicity",
+      "hypersensitivity", "allergy", "anaphylaxis", "rash", 
+      "liver injury", "renal impairment", "death", "fatal",
+      "myocardial infarction", "stroke", "seizure", "arrhythmia",
+      "bleeding", "hemorrhage", "thrombosis", "pancytopenia",
+      "leukopenia", "thrombocytopenia", "pancytopenia", "agranulocytosis",
+      "suicidal", "depression", "hallucination", "psychosis",
+      "QT prolongation", "torsades de pointes", "Stevens-Johnson syndrome",
+      "toxic epidermal necrolysis", "pancreatitis", "pulmonary fibrosis"
+    ];
+
+    const severeAdrTerms = [
+      "death", "fatal", "toxic epidermal necrolysis", "Stevens-Johnson syndrome",
+      "anaphylaxis", "myocardial infarction", "stroke", "liver failure",
+      "renal failure", "respiratory failure", "cardiac arrest", "suicide",
+      "pancytopenia", "agranulocytosis", "hemorrhage", "thrombosis"
+    ];
+
+    // Date validation and formatting
+    function isValidDate(ddmmyyyy) {
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(ddmmyyyy)) return false;
+      
+      const [dd, mm, yyyy] = ddmmyyyy.split('/').map(Number);
+      const date = new Date(yyyy, mm - 1, dd);
+      
+      return (
+        date.getFullYear() === yyyy &&
+        date.getMonth() === mm - 1 &&
+        date.getDate() === dd
+      );
+    }
+
     function formatDateForPubMed(ddmmyyyy) {
-      const parts = ddmmyyyy.split("/");
-      if (parts.length !== 3) return null;
-      const [dd, mm, yyyy] = parts;
+      const [dd, mm, yyyy] = ddmmyyyy.split('/');
       return `${yyyy}/${mm}/${dd}`;
     }
 
-    function isValidDateFormat(dateStr) {
-      return /^\d{2}\/\d{2}\/\d{4}$/.test(dateStr);
+    // Show/hide error messages
+    function showError(elementId, show) {
+      const element = document.getElementById(elementId);
+      element.style.display = show ? 'block' : 'none';
     }
 
+    // Highlight content with drug and ADR terms
+    function highlightContent(text, drug) {
+      if (!text) return "No abstract available";
+      
+      // Escape special regex characters in drug name
+      const escapedDrug = drug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Highlight the searched drug in blue and bold
+      const drugRegex = new RegExp(`(${escapedDrug})`, "gi");
+      text = text.replace(drugRegex, '<strong class="drug-highlight">$1</strong>');
+
+      // Highlight ADR terms (yellow)
+      const adrRegex = new RegExp(`(${adrTerms.join("|")})`, "gi");
+      text = text.replace(adrRegex, '<mark>$1</mark>');
+
+      // Highlight severe ADRs (red)
+      const severeRegex = new RegExp(`(${severeAdrTerms.join("|")})`, "gi");
+      text = text.replace(severeRegex, '<mark class="severe">$1</mark>');
+
+      return text;
+    }
+
+    // Count ADR mentions in text
+    function countADRs(text) {
+      if (!text) return { adrCount: 0, severeCount: 0 };
+      
+      let adrCount = 0;
+      let severeCount = 0;
+      
+      // Count all ADR mentions
+      adrTerms.forEach(term => {
+        const regex = new RegExp(term, "gi");
+        const matches = text.match(regex);
+        if (matches) adrCount += matches.length;
+      });
+      
+      // Count severe ADR mentions
+      severeAdrTerms.forEach(term => {
+        const regex = new RegExp(term, "gi");
+        const matches = text.match(regex);
+        if (matches) severeCount += matches.length;
+      });
+      
+      return {
+        adrCount,
+        severeCount,
+        hasADR: adrCount > 0,
+        hasSevereADR: severeCount > 0
+      };
+    }
+
+    // Fetch all PMIDs with pagination
     async function fetchAllPMIDs(searchTerm) {
       let allIDs = [];
       const retmax = 10000;
       let retstart = 0;
+      let totalResults = 0;
 
       try {
-        while (true) {
+        document.getElementById("loading").style.display = "block";
+        
+        // First request to get total count
+        const countUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmax=1&retstart=0&term=${encodeURIComponent(searchTerm)}&retmode=json`;
+        const countRes = await fetch(countUrl);
+        const countData = await countRes.json();
+        totalResults = parseInt(countData.esearchresult.count);
+        
+        if (totalResults === 0) {
+          document.getElementById("loading").style.display = "none";
+          return [];
+        }
+        
+        // Update loading message with total count
+        document.getElementById("loading").innerHTML = `
+          <div class="spinner"></div>
+          Found ${totalResults} articles. Fetching details... (This may take a few moments)
+        `;
+
+        // Fetch all IDs in chunks
+        while (retstart < totalResults) {
           const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmax=${retmax}&retstart=${retstart}&term=${encodeURIComponent(searchTerm)}&retmode=json`;
           const res = await fetch(url);
-          if (!res.ok) throw new Error("Failed to fetch PubMed IDs.");
           const data = await res.json();
           const ids = data.esearchresult.idlist;
           allIDs = allIDs.concat(ids);
-          if (ids.length < retmax) break;
           retstart += retmax;
         }
       } catch (err) {
+        console.error("Error fetching PubMed IDs:", err);
         alert("Error fetching PubMed IDs: " + err.message);
+        return [];
+      } finally {
+        document.getElementById("loading").style.display = "none";
       }
 
       return allIDs;
     }
 
+    // Fetch article details in chunks
     async function fetchPubMedDetails(ids) {
       const chunks = [];
       const chunkSize = 200;
-      for (let i = 0; i < ids.length; i += chunkSize) {
-        const chunk = ids.slice(i, i + chunkSize);
-        const efetchURL = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${chunk.join(',')}&retmode=xml`;
-        const efetchRes = await fetch(efetchURL);
-        const xmlText = await efetchRes.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-        chunks.push(...xmlDoc.getElementsByTagName("PubmedArticle"));
+      
+      try {
+        document.getElementById("loading").innerHTML = `
+          <div class="spinner"></div>
+          Processing ${ids.length} articles...
+        `;
+        document.getElementById("loading").style.display = "block";
+        
+        for (let i = 0; i < ids.length; i += chunkSize) {
+          const chunk = ids.slice(i, i + chunkSize);
+          const efetchURL = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${chunk.join(',')}&retmode=xml`;
+          const res = await fetch(efetchURL);
+          const xml = await res.text();
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xml, "text/xml");
+          chunks.push(...xmlDoc.getElementsByTagName("PubmedArticle"));
+        }
+      } catch (err) {
+        console.error("Error fetching PubMed details:", err);
+        alert("Error fetching article details: " + err.message);
+        return [];
+      } finally {
+        document.getElementById("loading").style.display = "none";
       }
+      
       return chunks;
     }
 
-    let csvContent = "";
+    // Get article title
+    function getTitle(article) {
+      return article.querySelector("ArticleTitle")?.textContent || "No title available";
+    }
 
+    // Get article abstract
+    function getAbstract(article) {
+      return Array.from(article.querySelectorAll("Abstract > AbstractText"))
+        .map(el => el.textContent)
+        .join(" ")
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // Get article PMID
+    function getPMID(article) {
+      return article.querySelector("PMID")?.textContent || "";
+    }
+
+    // Get article link
+    function getLink(article) {
+      const pmid = getPMID(article);
+      return `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
+    }
+
+    // Get article authors
+    function getAuthors(article) {
+      return Array.from(article.querySelectorAll("AuthorList > Author"))
+        .map(a => {
+          const lastName = a.querySelector("LastName")?.textContent || "";
+          const foreName = a.querySelector("ForeName")?.textContent || "";
+          return `${lastName} ${foreName}`.trim();
+        })
+        .filter(name => name)
+        .join("; ");
+    }
+
+    // Get article journal
+    function getJournal(article) {
+      return article.querySelector("Journal > Title")?.textContent || "Unknown journal";
+    }
+
+    // Get article date
+    function getArticleDate(article) {
+      const pubDate = article.querySelector("PubDate");
+      let day = "01", month = "01", year = "1900";
+      if (pubDate) {
+        year = pubDate.querySelector("Year")?.textContent || year;
+        const monthMap = { 
+          Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", 
+          Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" 
+        };
+        const monthText = pubDate.querySelector("Month")?.textContent;
+        const dayText = pubDate.querySelector("Day")?.textContent;
+        if (monthText) month = monthMap[monthText] || monthText.padStart(2, '0');
+        if (dayText) day = dayText.padStart(2, '0');
+      }
+      return `${day}/${month}/${year}`;
+    }
+
+    // Update statistics dashboard
+    function updateStats(articles) {
+      const totalArticles = articles.length;
+      const adrArticles = articles.filter(a => a.adrCount > 0).length;
+      const severeAdrArticles = articles.filter(a => a.hasSevereADR).length;
+      
+      // Get top ADR terms
+      const adrTermCounts = {};
+      adrTerms.forEach(term => {
+        const regex = new RegExp(term, "gi");
+        let count = 0;
+        articles.forEach(article => {
+          const text = article.title + " " + article.abstract;
+          const matches = text.match(regex);
+          if (matches) count += matches.length;
+        });
+        if (count > 0) adrTermCounts[term] = count;
+      });
+      
+      // Sort ADR terms by frequency
+      const sortedADRTerms = Object.entries(adrTermCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5); // Get top 5
+      
+      // Update top ADRs list
+      const topADRsList = document.getElementById("topADRsList");
+      topADRsList.innerHTML = "";
+      
+      if (sortedADRTerms.length > 0) {
+        sortedADRTerms.forEach(([term, count]) => {
+          const adrItem = document.createElement("div");
+          adrItem.className = "top-adr-item";
+          adrItem.innerHTML = `
+            <span class="top-adr-term">${term}</span>
+            <span class="top-adr-count">${count}</span>
+          `;
+          topADRsList.appendChild(adrItem);
+        });
+        document.getElementById("topADRsContainer").style.display = "block";
+      } else {
+        document.getElementById("topADRsContainer").style.display = "none";
+      }
+      
+      // Get most frequent ADR term
+      let topADRTerm = "-";
+      let maxCount = 0;
+      for (const [term, count] of Object.entries(adrTermCounts)) {
+        if (count > maxCount) {
+          maxCount = count;
+          topADRTerm = term;
+        }
+      }
+      
+      // Update dashboard
+      document.getElementById("totalArticles").textContent = totalArticles;
+      document.getElementById("adrArticles").textContent = adrArticles;
+      document.getElementById("severeAdrArticles").textContent = severeAdrArticles;
+      document.getElementById("topADRTerm").textContent = topADRTerm;
+      document.getElementById("statsDashboard").style.display = "flex";
+    }
+
+    // Filter table rows
+    function filterTable(filterType) {
+      const rows = document.querySelectorAll("#resultsTable tbody tr");
+      rows.forEach(row => {
+        const adrCount = parseInt(row.cells[2].textContent);
+        const isSevere = row.cells[3].textContent.includes("🔴");
+        
+        switch (filterType) {
+          case "all":
+            row.style.display = "";
+            break;
+          case "adr":
+            row.style.display = adrCount > 0 ? "" : "none";
+            break;
+          case "severe":
+            row.style.display = isSevere ? "" : "none";
+            break;
+        }
+      });
+      
+      // Update active filter button
+      document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.filter === filterType);
+      });
+    }
+
+    // Main search function
     async function searchPubMed() {
+      // Reset UI
+      document.querySelector("#resultsTable tbody").innerHTML = "";
+      document.getElementById("pubmedVerifiedBanner").style.display = "none";
+      document.getElementById("actionButtons").style.display = "none";
+      document.getElementById("filterButtons").style.display = "none";
+      document.getElementById("statsDashboard").style.display = "none";
+      document.getElementById("topADRsContainer").style.display = "none";
+      document.getElementById("resultCount").textContent = "";
+      
+      // Validate inputs
       const drug = document.getElementById('drugName').value.trim();
       const fromInput = document.getElementById('fromDate').value.trim();
       const toInput = document.getElementById('toDate').value.trim();
-
-      if (!drug || !isValidDateFormat(fromInput) || !isValidDateFormat(toInput)) {
-        alert("Please enter valid dates in DD/MM/YYYY format.");
+      
+      // Validate drug name
+      if (!drug) {
+        alert("Please enter a drug name to search for.");
         return;
       }
-
+      
+      // Validate dates
+      let isValid = true;
+      
+      if (!isValidDate(fromInput)) {
+        showError('fromDateError', true);
+        isValid = false;
+      } else {
+        showError('fromDateError', false);
+      }
+      
+      if (!isValidDate(toInput)) {
+        showError('toDateError', true);
+        isValid = false;
+      } else {
+        showError('toDateError', false);
+      }
+      
+      if (!isValid) return;
+      
+      currentDrug = drug;
       const fromDate = formatDateForPubMed(fromInput);
       const toDate = formatDateForPubMed(toInput);
       const adrEnabled = document.getElementById('adrToggle').checked;
-
-      let baseQuery = `(("${drug}"[All Fields]) AND ("${fromDate}"[Date - Publication] : "${toDate}"[Date - Publication]))`;
-
-      let adrTerms = `(('adverse drug reaction'/exp OR 'adverse drug reaction' OR 'drug overdose'/exp OR 'drug overdose' OR 'drug misuse'/exp OR 'drug misuse' OR 'drug abuse' OR 'substance abuse'/exp OR 'substance abuse' OR 'pregnancy'/exp OR 'pregnancy' OR 'drug efficacy'/exp OR 'drug efficacy' OR 'drug withdrawal'/exp OR 'drug withdrawal' OR 'drug tolerance'/exp OR 'drug tolerance' OR 'medication error'/exp OR 'medication error' OR 'death'/exp OR 'death' OR 'drug interaction'/exp OR 'drug interaction' OR 'carcinogenicity'/exp OR 'carcinogenicity' OR 'off label drug use'/exp OR 'off label drug use' OR 'occupational exposure'/exp OR 'occupational exposure' OR 'toxicity'/exp OR 'intoxication' OR 'drug contraindication'/exp OR 'drug contraindication' OR 'congenital disorder'/exp OR 'congenital disorder' OR 'drug treatment failure'/exp OR 'drug treatment failure' OR 'lactation'/exp OR 'lactation' OR 'case report'/exp OR 'case report' OR 'environmental exposure'/exp OR 'environmental exposure' OR 'treatment contraindication'/exp OR 'treatment contraindication'))`;
-
-      const searchTerm = adrEnabled
-        ? `${baseQuery} AND humans[MeSH Terms] AND ${adrTerms}`
-        : `${baseQuery} AND humans[MeSH Terms]`;
-
-      document.getElementById("loading").style.display = "block";
-
-      const ids = await fetchAllPMIDs(searchTerm);
+      
+      // Build search query
+      const baseQuery = `(("${drug}"[All Fields]) AND ("${fromDate}"[Date - Publication] : "${toDate}"[Date - Publication]))`;
+      
+      // Using the exact MeSH terms format as requested
+      const adrTerms = `('adverse drug reaction'/exp OR 'adverse drug reaction' OR 'drug overdose'/exp OR 'drug overdose' OR 'drug misuse'/exp OR 'drug misuse' OR 'drug abuse' OR 'substance abuse'/exp OR 'substance abuse' OR 'pregnancy'/exp OR 'pregnancy' OR 'drug efficacy'/exp OR 'drug efficacy' OR 'drug withdrawal'/exp OR 'drug withdrawal' OR 'drug tolerance'/exp OR 'drug tolerance' OR 'medication error'/exp OR 'medication error' OR 'death'/exp OR 'death' OR 'drug interaction'/exp OR 'drug interaction' OR 'carcinogenicity'/exp OR 'carcinogenicity' OR 'off label drug use'/exp OR 'off label drug use' OR 'occupational exposure'/exp OR 'occupational exposure' OR 'toxicity'/exp OR 'intoxication' OR 'drug contraindication'/exp OR 'drug contraindication' OR 'congenital disorder'/exp OR 'congenital disorder' OR 'drug treatment failure'/exp OR 'drug treatment failure' OR 'lactation'/exp OR 'lactation' OR 'case report'/exp OR 'case report' OR 'environmental exposure'/exp OR 'environmental exposure' OR 'treatment contraindication'/exp OR 'treatment contraindication')`;
+      
+      currentSearchTerm = adrEnabled ? 
+        `${baseQuery} AND humans[MeSH Terms] AND ${adrTerms}` : 
+        `${baseQuery} AND humans[MeSH Terms]`;
+      
+      // Fetch PMIDs
+      const ids = await fetchAllPMIDs(currentSearchTerm);
+      
       if (ids.length === 0) {
-        document.getElementById("output").value = "No results found.";
-        document.getElementById("resultCount").textContent = "";
-        document.getElementById("actionButtons").style.display = "none";
-        document.getElementById("loading").style.display = "none";
+        alert("No results found for your search criteria.");
         return;
       }
-
-      if (ids.length > 2000) {
-        const goAhead = confirm(`This search found ${ids.length} articles. It may take a while. Continue?`);
-        if (!goAhead) {
-          document.getElementById("loading").style.display = "none";
-          return;
-        }
-      }
-
-      document.getElementById("resultCount").textContent = `Found ${ids.length} article(s).`;
-
+      
+      // Fetch article details
       const articles = await fetchPubMedDetails(ids);
-      csvContent = "PMID,Title,Authors,Journal,Date,Abstract\n";
-      let displayText = "";
-
-      for (let article of articles) {
-        const title = article.querySelector("ArticleTitle")?.textContent.replace(/"/g, '""') || "";
-        const journal = article.querySelector("Journal > Title")?.textContent || "";
-
-        const pubDate = article.querySelector("PubDate");
-        let day = "01", month = "01", year = "1900";
-        if (pubDate) {
-          year = pubDate.querySelector("Year")?.textContent || year;
-          const monthMap = { Jan:"01", Feb:"02", Mar:"03", Apr:"04", May:"05", Jun:"06", Jul:"07", Aug:"08", Sep:"09", Oct:"10", Nov:"11", Dec:"12" };
-          const monthText = pubDate.querySelector("Month")?.textContent;
-          const dayText = pubDate.querySelector("Day")?.textContent;
-          if (monthText) month = monthMap[monthText] || monthText.padStart(2, '0');
-          if (dayText) day = dayText.padStart(2, '0');
-        }
-        const fullDate = `${day}/${month}/${year}`;
-
-        const abstractElements = article.querySelectorAll("Abstract > AbstractText");
-        const abstract = Array.from(abstractElements).map(el => el.textContent).join("\n").replace(/"/g, '""');
-        const authors = Array.from(article.querySelectorAll("AuthorList > Author"))
-          .map(a => `${a.querySelector("LastName")?.textContent || ""} ${a.querySelector("ForeName")?.textContent || ""}`)
-          .join("; ");
-        const pmid = article.querySelector("PMID")?.textContent || "";
-
-        csvContent += `"${pmid}","${title}","${authors}","${journal}","${fullDate}","${abstract}"\n`;
-
-        displayText += `Title: ${title}\nAuthors: ${authors}\nJournal: ${journal}\nDate: ${fullDate}\nAbstract: ${abstract}\n\n`;
+      
+      if (articles.length === 0) {
+        alert("No articles found with complete details.");
+        return;
       }
-
-      document.getElementById("output").value = displayText;
-      document.getElementById("actionButtons").style.display = "block";
-      document.getElementById("loading").style.display = "none";
-
-      document.getElementById("openPubMed").onclick = () => {
-        const pubmedLink = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(searchTerm)}&format=abstract`;
-        window.open(pubmedLink, "_blank");
-      };
+      
+      // Process articles
+      allArticles = articles.map(article => {
+        const title = getTitle(article);
+        const abstract = getAbstract(article);
+        const text = `${title} ${abstract}`;
+        
+        // Analyze ADRs
+        const { adrCount, severeCount, hasADR, hasSevereADR } = countADRs(text);
+        
+        return {
+          pmid: getPMID(article),
+          title,
+          abstract,
+          authors: getAuthors(article),
+          journal: getJournal(article),
+          date: getArticleDate(article),
+          link: getLink(article),
+          adrCount,
+          severeCount,
+          hasADR,
+          hasSevereADR
+        };
+      });
+      
+      // Display results
+      displayResults(allArticles);
     }
 
+    // Display results in table
+    function displayResults(articles) {
+      const tableBody = document.querySelector("#resultsTable tbody");
+      tableBody.innerHTML = "";
+      
+      // Initialize CSV content with headers
+      csvContent = "PMID,Title,Authors,Journal,Publication Date,Abstract,ADR Count,Severe ADR Count,Link\n";
+      adrCsvContent = "PMID,Title,Authors,Journal,Publication Date,Abstract,ADR Count,Severe ADR Count,Link\n";
+      
+      // Sort by ADR count (highest first) and severity
+      articles.sort((a, b) => {
+        if (a.hasSevereADR && !b.hasSevereADR) return -1;
+        if (b.hasSevereADR && !a.hasSevereADR) return 1;
+        return b.adrCount - a.adrCount;
+      });
+      
+      // Populate table
+      articles.forEach(article => {
+        const tr = document.createElement("tr");
+        if (article.hasSevereADR) tr.classList.add("severe-row");
+        else if (article.adrCount > 0) tr.classList.add("priority-row");
+        
+        // Highlight content
+        const highlightedTitle = highlightContent(article.title, currentDrug);
+        const highlightedAbstract = highlightContent(article.abstract, currentDrug);
+        
+        // Determine severity indicator
+        let severityIndicator = '🟢'; // Low
+        if (article.hasSevereADR) severityIndicator = '🔴'; // High
+        else if (article.adrCount > 0) severityIndicator = '🟡'; // Medium
+        
+        tr.innerHTML = `
+          <td>${article.pmid}</td>
+          <td>${highlightedTitle}</td>
+          <td>${article.adrCount}</td>
+          <td>${severityIndicator}</td>
+          <td class="abstract-cell">${highlightedAbstract}</td>
+          <td><a href="${article.link}" class="view-link" target="_blank">View <i class="fas fa-external-link-alt"></i></a></td>
+        `;
+        
+        // Add to CSV content
+        const csvRow = `"${article.pmid}","${escapeCsv(article.title)}","${escapeCsv(article.authors)}","${escapeCsv(article.journal)}","${article.date}","${escapeCsv(article.abstract)}",${article.adrCount},${article.severeCount},"${article.link}"\n`;
+        csvContent += csvRow;
+        
+        // Add to ADR CSV if applicable
+        if (article.adrCount > 0) {
+          adrCsvContent += csvRow;
+        }
+        
+        tableBody.appendChild(tr);
+      });
+      
+      // Update UI
+      document.getElementById("resultCount").textContent = `Found ${articles.length} articles. ${articles.filter(a => a.adrCount > 0).length} contain ADR mentions.`;
+      document.getElementById("actionButtons").style.display = "flex";
+      document.getElementById("filterButtons").style.display = "flex";
+      document.getElementById("pubmedVerifiedBanner").style.display = "flex";
+      
+      // Set up filter buttons
+      document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => filterTable(btn.dataset.filter));
+      });
+      
+      // Set up "Open in PubMed" button
+      document.getElementById("openPubMed").onclick = () => {
+        const pubmedLink = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(currentSearchTerm)}&format=abstract`;
+        window.open(pubmedLink, "_blank");
+      };
+      
+      // Update statistics
+      updateStats(articles);
+    }
+
+    // Helper function to escape CSV values
+    function escapeCsv(str) {
+      if (!str) return '';
+      return str.replace(/"/g, '""');
+    }
+
+    // Download CSV
     function downloadCSV() {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 10);
       link.href = URL.createObjectURL(blob);
-      link.download = "pubmed_abstracts.csv";
+      link.download = `pubmed_${currentDrug}_${timestamp}.csv`;
       link.click();
     }
-  </script>
 
+    // Download ADR Report (only articles with ADRs)
+    function downloadADRReport() {
+      const blob = new Blob([adrCsvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.href = URL.createObjectURL(blob);
+      link.download = `pubmed_${currentDrug}_ADRs_${timestamp}.csv`;
+      link.click();
+    }
+
+    // Initialize date validation
+    document.getElementById('fromDate').addEventListener('blur', function() {
+      showError('fromDateError', !isValidDate(this.value));
+    });
+
+    document.getElementById('toDate').addEventListener('blur', function() {
+      showError('toDateError', !isValidDate(this.value));
+    });
+  </script>
 </body>
 </html>
